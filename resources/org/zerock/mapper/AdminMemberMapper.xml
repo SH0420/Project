@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- mybatis에 대한 이용이라는 선언 -->
+<mapper namespace="org.zerock.mapper.AdminMemberMapper">
+
+	<select id="getList" resultType="org.zerock.domain.AdminMemberDTO"> 
+	<![CDATA[
+		select m.id , m.phonenum , m.regidate , m.empno  , c.name ,  count
+        from member m inner join compony c 
+        on m.empno = c.empno 
+        left join ( select id, count(cno) as count from my_club group by id)  y  
+        on m.id = y.id
+        where admin_type != 1
+	]]>
+	</select> 
+	
+	<select id="getTotal" resultType="int">
+		select count(*) from member where admin_type != 1
+	</select>
+	
+	 <delete id="memberDelete">
+		delete from compony where empno = #{empno}
+	</delete>
+	
+	<delete id="downCount">
+		begin
+		    for i in (  select  cno from my_club  where id = #{id}  ) 
+		    loop  
+		        update club 
+		        set count = count - 1
+		        where cno = i.cno ;
+		        commit;
+		    end loop;
+		end;
+	</delete>
+	
+</mapper> 

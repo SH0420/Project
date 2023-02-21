@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- mybatis에 대한 이용이라는 선언 -->
+<mapper namespace="org.zerock.mapper.AdminClubMapper">
+
+	<select id="getList" resultType="org.zerock.domain.AdminClubDTO"> 
+	<![CDATA[
+		select rownum rn , c.* , p.name , g.cate_kind
+	    from club c 
+	    inner join member m 
+	    on c.id = m.id 
+	    inner join compony p 
+	    on m.empno = p.empno
+	    inner join category g
+	    on c.cate_num = g.cate_num
+	    where status = '00'
+	]]>
+	</select>
+
+
+	<sql id="criteria">
+		<trim prefix="and" suffix=" AND " prefixOverrides="OR">
+			<foreach collection="typeArr" item="type">
+				<trim prefix="OR">
+					<choose>
+						<when test="type.equals('01')">
+							cate_num = #{type} and
+							club_name like '%#{keyword}%'
+						</when>
+						<when test="type == '02'.toString()">
+							cate_num = #{type} and
+							club_name like
+							'%#{keyword}%'
+						</when>
+						<when test="type == '03'.toString()">
+							cate_num = #{type} and
+							club_name like
+							'%#{keyword}%'
+						</when>
+						<when test="type == '04'.toString()">
+							cate_num = #{type} and
+							club_name like
+							'%#{keyword}%'
+						</when>
+					</choose>
+				</trim>
+			</foreach>
+		</trim>
+	</sql>
+
+	<!-- ]]> <include refid="criteria"></include> <![CDATA[ -->
+	<!-- -->
+	<!-- 페이징 -->
+	<select id="getListWithPaging"
+		resultType="org.zerock.domain.AdminClubDTO"
+		parameterType="org.zerock.domain.Criteria">
+		<![CDATA[
+		  select rn ,cno , club_name , content , apply_date , meeting_day , meeting_time , status , like_count , count , cate_num , id , cate_kind 
+		  from
+          (
+          select /*+INDEX_DESC(board PK_ClUB) */
+		  rownum rn ,cno , club_name , content , apply_date , meeting_day , meeting_time , status , like_count , count , cate_num , id , cate_kind from(
+          select cno , club_name , content , apply_date , meeting_day , meeting_time , status , like_count , count , b.cate_num , id , c.cate_kind 
+          from club b inner join category c 
+          on b.cate_num = c.cate_num
+          order by cno desc   ) 
+          where status = '01'  
+           and rownum <= #{pageNum} * #{amount}
+          order by cno desc 
+          ) bcr
+          where rn >  (#{pageNum} -1) * #{amount}
+          order by cno desc
+          ]]>
+	</select>
+
+	<select id="getManageList"
+		resultType="org.zerock.domain.AdminClubDTO"> 
+	<![CDATA[
+		select c.* , p.name , g.cate_kind
+	    from club c 
+	    inner join member m 
+	    on c.id = m.id 
+	    inner join compony p 
+	    on m.empno = p.empno
+	    inner join category g
+	    on c.cate_num = g.cate_num
+	    where status = '01'
+	]]>
+	</select>
+
+	<select id="getRead" resultType="org.zerock.domain.AdminClubDTO">
+		select c.* , g.*
+		from club c inner join category g
+		on c.cate_num = g.cate_num
+		where cno = #{cno}
+	</select>
+
+	<select id="getMemberRead"
+		resultType="org.zerock.domain.AdminMemberDTO">
+		select p.name , m.* , c.*
+		from ( select cno , id , to_char(ceil(sysdate -
+		app_date)) as app_date from my_club ) c
+		inner join member m
+		on c.id = m.id
+		inner join compony p
+		on p.empno = m.empno
+		where c.cno = #{cno}
+	</select>
+
+	<!-- 새로운 동호회 등록 -->
+	<insert id="clubRegister">
+		insert into club (cno , club_name , content , apply_date , meeting_day ,
+		meeting_time ,status, cate_num , id)
+		values( seq_club.nextval , #{club_name} , #{content} , sysdate ,
+		#{meeting_day} , #{meeting_time}, '01' , #{cate_num}, #{id} )
+	</insert>
+
+	<!-- 동호회 승인 or 거절 -->
+	<update id="update">
+		update club
+		<if test='status == 01'>
+			set status = #{status},
+			apply_date = sysdate,
+			id = #{id} ,
+			count = ( count +1 )
+		</if>
+		<if test='status == 02'>
+			set status = #{status}
+		</if>
+		where cno = #{cno}
+	</update>
+
+	<insert id="applyClub">
+		insert into my_club
+		values (#{id} , #{cno} , 0 ,
+		sysdate)
+	</insert>
+
+	<select id="getClubCount" resultType="int">
+		select count(*) from club
+		where status=00
+	</select>
+
+	<select id="getTotalCount" resultType="int">
+		select count(*) from club
+		where status=01
+	</select>
+
+	<delete id="MemDelete">
+		delete from my_club
+		where cno = #{cno}
+	</delete>
+
+
+	<delete id="clubDelete">
+		delete from club where cno = #{cno}
+	</delete>
+
+
+	<!-- 삭제 안내 -->
+	<update id="wattingDeleteClub">
+		update club
+		set club_name = concat(club_name ,
+		'(삭제예정)')
+		where cno = #{cno}
+	</update>
+
+	<update id="wattingDeleteMyClub">
+		update my_club
+		set status = 1
+		where cno = #{cno}
+	</update>
+
+
+	<!-- -->
+
+</mapper> 
+
+
+

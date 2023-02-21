@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+	PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.zerock.mapper.QnaBoardMapper">
+
+	<!-- 게시판 목록 개수 -->
+	<select id="getListCount" resultType="int" parameterType="org.zerock.domain.BoardVO">
+		SELECT COUNT(*)
+		FROM BOARD b inner join category c 
+		on b.cate_num = c.cate_num
+ 		WHERE BNO > 0 and board_type in ('02') 
+		<if test="cate_num != null and cate_num !='' and cate_num != '00'">
+		AND b.CATE_NUM = #{cate_num}
+		</if>
+		<!-- <if test="type == 'title' or type == 'content'">
+		AND(b.TITLE LIKE '%' || #{keyword} || '%' or b.CONTENT LIKE '%' || #{keyword} || '%')
+		</if> -->
+		<if test="type == 'title'">
+		AND b.TITLE LIKE '%' || #{keyword} || '%'
+		</if>
+		<if test="type == 'content'">
+		AND b.CONTENT LIKE '%' || #{keyword} || '%'
+		</if>
+		ORDER BY BNO DESC
+	</select>
+
+	<!-- 게시판 목록 가져오기 -->
+	<select id="getList" resultType="org.zerock.domain.BoardVO" parameterType="org.zerock.domain.BoardVO">
+		
+		select * from (
+			select rownum rn, data.*
+			from (
+				SELECT b.* , c.cate_kind, (select decode(nvl(sum(r.ans_type),0),0,'N','Y')  from reply r where b.bno = r.bno) ans_type
+				FROM BOARD b inner join category c 
+				on b.cate_num = c.cate_num
+		 		WHERE BNO > 0 and board_type = 02 
+				<if test="cate_num != null and cate_num !='' and cate_num != '00'">
+				AND b.CATE_NUM = #{cate_num}
+				</if>
+				<!-- <if test="type == 'title' or type == 'content'">
+				AND(b.TITLE LIKE '%' || #{keyword} || '%' or b.CONTENT LIKE '%' || #{keyword} || '%')
+				</if> -->
+				<if test="type == 'title'">
+				AND b.TITLE LIKE '%' || #{keyword} || '%'
+				</if>
+				<if test="type == 'content'">
+				AND b.CONTENT LIKE '%' || #{keyword} || '%'
+				</if>
+				order by b.bno desc
+			)data
+		) where rn > (#{pageNum}-1) * #{amount}
+		<![CDATA[and rn <= #{pageNum} * #{amount} ]]>
+	</select>
+	
+	<!-- 카테고리 가져오기 -->
+	<select id="getCategoryList"  resultType="org.zerock.domain.BoardVO" >
+		SELECT
+			cate_num,
+			cate_kind
+		FROM CATEGORY
+		WHERE CATE_NUM != '00' 
+	</select>
+	
+	<insert id="insert">
+		insert into board (bno, title, content, reg_date, secret_type, board_type , id , cate_num)
+		values (seq_board.nextval, #{title} , #{content} , sysdate , #{secret_type}, '02',  #{id}, #{cate_num})
+	</insert>
+	
+	<insert id="insertSelectKey">
+		<selectKey keyProperty="bno" order="BEFORE" resultType="long">
+			select seq_board.nextval from dual
+		</selectKey>
+		
+		insert into board (bno, title, content, reg_date, secret_type, board_type , id , cate_num)
+		values (#{bno}, #{title} , #{content} , sysdate ,  #{secret_type}, '02', #{id}, #{cate_num})
+	</insert>
+	
+
+	<select id="read" resultType="org.zerock.domain.BoardVO">
+	 	select * from board where bno = #{bno} 
+	</select>
+	
+	<delete id="delete" >
+		delete from board where bno = #{bno} 
+	</delete>
+	
+	<update id="update">
+		update board set
+			title = #{title},
+			content = #{content},
+			cate_num = #{cate_num},
+			secret_type = #{secret_type}
+		where id = #{id}
+		AND board_type = 02
+	</update>
+
+
+	<select id="getReply" resultType="org.zerock.domain.ReplyVO">
+		select * from reply where ans_type = 1 and bno = #{bno}
+	</select>
+</mapper>

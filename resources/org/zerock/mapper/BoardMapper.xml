@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+	PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.zerock.mapper.BoardMapper">
+
+	<!-- 게시판 목록 개수 -->
+	<select id="getListCount" resultType="int" parameterType="org.zerock.domain.BoardVO">
+		SELECT COUNT(*)
+		FROM BOARD b inner join category c 
+		on b.cate_num = c.cate_num
+ 		WHERE BNO > 0 and board_type in ('01') 
+		<if test="cate_num != null and cate_num !=''">
+		AND b.CATE_NUM = #{cate_num}
+		</if>
+		<if test="type == 'title'">
+		AND b.TITLE LIKE '%' || #{keyword} || '%'
+		</if>
+		<if test="type == 'content'">
+		AND b.CONTENT LIKE '%' || #{keyword} || '%'
+		</if>
+		ORDER BY BNO DESC
+	</select>
+
+	<!-- 게시판 목록 가져오기 -->
+	<select id="getList" resultType="org.zerock.domain.BoardVO" parameterType="org.zerock.domain.BoardVO">
+		
+		select 
+		  data.rn  
+         ,data.BNO
+         ,data.TITLE
+         ,data.CONTENT
+         ,data.REG_DATE
+         ,data.MOD_DATE
+         ,data.VIEW_COUNT
+         ,data.SECRET_TYPE
+         ,data.BOARD_TYPE
+         ,data.CATE_NUM
+         ,data.ID
+         ,data.FILE_CHECK /* Y이면 이미지 보여줌 */
+         ,data.CATE_KIND
+         ,(select count(*) from reply r where r.bno = data.bno) replyCnt 
+      from (
+            select rownum rn, data.*
+            from (                 <!-- NULL체크용 UUID가 NULL이면 'N'으로 바꿔라 -->
+               SELECT B.* , C.CATE_KIND, NVL2(BA.UUID,'Y','N') FILE_CHECK
+               FROM BOARD B INNER JOIN CATEGORY C 
+               ON B.CATE_NUM = C.CATE_NUM
+               LEFT OUTER JOIN BOARDATTACH BA
+               ON B.BNO = BA.BNO
+               WHERE B.BNO > 0 AND BOARD_TYPE IN ('01') 
+               <if test="cate_num != null and cate_num !=''">
+               AND b.CATE_NUM = #{cate_num}
+               </if>
+               <if test="type == 'title'">
+               AND b.TITLE LIKE '%' || #{keyword} || '%'
+               </if>
+               <if test="type == 'content'">
+               AND b.CONTENT LIKE '%' || #{keyword} || '%'
+               </if>
+               order by b.bno desc
+            )data
+         ) data where rn > (#{pageNum}-1) * #{amount}
+         <![CDATA[and rn <= #{pageNum} * #{amount} ]]>
+	</select>
+	
+	<!-- 카테고리 가져오기 -->
+	<select id="getCategoryList"  resultType="org.zerock.domain.BoardVO" >
+		SELECT
+			cate_num,
+			cate_kind
+		FROM CATEGORY
+		WHERE CATE_NUM != '00' 
+	</select>
+	
+	<insert id="insert">
+		insert into board (bno, title, content, reg_date, board_type , id , cate_num)
+		values (seq_board.nextval, #{title} , #{content} , sysdate , '01', #{id} , #{cate_num})
+	</insert>
+	
+	<insert id="insertSelectKey">
+		<selectKey keyProperty="bno" order="BEFORE" resultType="long">
+			select seq_board.nextval from dual
+		</selectKey>
+		
+		insert into board (bno, title, content, reg_date, board_type , id , cate_num)
+		values (#{bno}, #{title} , #{content} , sysdate , '01',  #{id} , #{cate_num})
+	</insert>
+	
+	<insert id="insertFile" parameterType="hashMap">
+		INSERT INTO MP_FILE(
+			BNO,
+			ORG_FILE_NAME,
+			STORED_FILE_NAME,
+			FILE_SIZE
+		)VALUES(
+			SEQ_MP_FILE_NO.NEXTVAL,
+			#{BNO},
+			#{ORG_FILE_NAME},
+			#{STORED_FILE_NAME},
+			#{FILE_SIZE}
+		)
+    </insert>
+	
+	<select id="read" resultType="org.zerock.domain.BoardVO">
+	 	select * from board where bno = #{bno}
+	</select>
+	
+	<delete id="delete" >
+		delete from board where bno = #{bno}
+	</delete>
+	
+	<update id="update">
+		update board set
+			title = #{title},
+			content = #{content},
+			cate_num = #{cate_num}
+		where bno = #{bno}
+	</update>
+
+</mapper>

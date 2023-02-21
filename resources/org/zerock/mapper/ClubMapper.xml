@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+	PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.zerock.mapper.ClubMapper">
+
+	<select id="mainList1" resultType="org.zerock.domain.ClubDTO">
+	 <![CDATA[
+		select rownum rnum , c.* from 
+		( select * from club order by count desc ) c
+		where rownum  <= 4 and status = '01'
+		order by rnum asc
+	 ]]>
+	</select>
+
+	<select id="mainList2" resultType="org.zerock.domain.ClubDTO">
+	 <![CDATA[
+		select rownum rnum , c.* from 
+		( select * from club where status = '01' order by apply_date desc ) c
+		where rownum  <= 4 and status = '01'
+		order by rnum asc
+	 ]]>
+	</select>
+
+
+	<select id="getList1" resultType="org.zerock.domain.ClubDTO">
+	 <![CDATA[
+		 select * from club where cno > 0
+	 ]]>
+	</select>
+	<sql id="criteria">
+		<trim prefix="(" suffix=") AND " prefixOverrides="OR">
+			<foreach item='type' collection="typeArr">
+				<trim prefix="OR">
+					<choose>
+						<when test="type == 'C'.toString()">
+							club_name like '%' ||#{keyword}||'%'
+						</when>
+						<when test="type == 'T'.toString()">
+							cate_num like '%' ||#{keyword}||'%'
+						</when>
+					</choose>
+				</trim>
+			</foreach>
+		</trim>
+	</sql>
+	<select id="getListWithPaging"
+		resultType="org.zerock.domain.ClubDTO">
+	<![CDATA[
+		select
+			rnum, cno, cate_num, club_name, apply_date, meeting_time, meeting_day, count, content
+		from
+			(
+			select /*+INDEX_DESC(club pk_club) */
+			  rownum rnum, cno, cate_num, club_name, apply_date, meeting_time ,meeting_day, count, content
+		from
+			  club
+		where 
+	]]>
+
+		<include refid="criteria"></include>
+	
+	<![CDATA[
+			rownum <= #{pageNum} * #{amount}  and status = '01'
+			)
+		where rnum > (#{pageNum} -1) * #{amount} 
+	]]>
+	</select>
+
+	<select id="getTotalCount" resultType="int">
+		select count(*) from club where
+		<include refid="criteria"></include>
+		cno> 0
+
+	</select>
+
+
+	<select id="getExerciseWithPaging"
+		resultType="org.zerock.domain.ClubDTO">
+	<![CDATA[
+		select
+			rnum,cno, cate_num, club_name, apply_date, meeting_time, meeting_day, content
+		from
+			(
+			select /*+INDEX_DESC(club pk_club) */
+			  rownum rnum, cno, cate_num, club_name, apply_date, meeting_time ,meeting_day, content
+		from
+			  club
+		where
+	]]>
+
+		<include refid="criteria"></include>
+	
+	<![CDATA[
+			rownum <= #{pageNum} * #{amount} and cate_num = '02'
+			)
+		where rnum > (#{pageNum} -1) * #{amount} and cate_num = '02'
+	]]>
+	</select>
+
+
+
+
+	<select id="getLeisureWithPaging"
+		resultType="org.zerock.domain.ClubDTO">
+	<![CDATA[
+		select
+			rnum,cno, cate_num, club_name, apply_date, meeting_time, meeting_day, content
+		from
+			(
+			select /*+INDEX_DESC(club pk_club) */
+			  rownum rnum, cno, cate_num, club_name, apply_date, meeting_time ,meeting_day, content
+		from
+			  club
+		where status = '01' and
+	]]>
+
+		<include refid="criteria"></include>
+	
+	<![CDATA[
+			rownum <= #{pageNum} * #{amount} and cate_num = '01'
+			)
+		where rnum > (#{pageNum} -1) * #{amount} and cate_num = '01'
+	]]>
+	</select>
+
+
+
+
+
+	<select id="getTravelWithPaging"
+		resultType="org.zerock.domain.ClubDTO">
+	<![CDATA[
+		select
+			rnum,cno, cate_num, club_name, apply_date, meeting_time, meeting_day, content
+		from
+			(
+			select /*+INDEX_DESC(club pk_club) */
+			  rownum rnum, cno, cate_num, club_name, apply_date, meeting_time ,meeting_day, content
+		from
+			  club
+		where status = '01' and
+	]]>
+
+		<include refid="criteria"></include>
+	
+	<![CDATA[
+			rownum <= #{pageNum} * #{amount} and cate_num = '03'
+			)
+		where rnum > (#{pageNum} -1) * #{amount} and cate_num = '03'
+	]]>
+	</select>
+
+
+
+	<select id="getStudyWithPaging"
+		resultType="org.zerock.domain.ClubDTO">
+	<![CDATA[
+		select
+			rnum,cno, cate_num, club_name, apply_date, meeting_time, meeting_day, content
+		from
+			(
+			select /*+INDEX_DESC(club pk_club) */
+			  rownum rnum, cno, cate_num, club_name, apply_date, meeting_time ,meeting_day, content
+		from
+			  club
+		where status = '01' and
+	]]>
+
+		<include refid="criteria"></include>
+	<![CDATA[
+			rownum <= #{pageNum} * #{amount} and cate_num = '04'
+			)
+		where rnum > (#{pageNum} -1) * #{amount}
+	]]>
+	</select>
+
+
+
+
+	<select id="getlist" resultType="org.zerock.domain.ClubDTO">
+		<![CDATA[
+			select * from club where cno = #{cno}
+		]]>
+	</select>
+
+	<!--동호회 신청에서 신청하기 눌렀을때 MY CLUB에 신청내역 삽입 -->
+
+	<insert id="club_insert">
+		insert into my_club
+		values ( #{id}, #{cno}, 0 , sysdate )
+	</insert>
+
+
+
+	<update id="updatecount">
+		UPDATE
+		club
+		SET
+		COUNT = (count + 1 )
+		WHERE
+		cno = #{cno}
+	</update>
+
+
+	<!-- <insert id="register"> insert into club (cno, title, cate_num, apply_date, 
+		meeting_time ,meeting_day, content ) values (#{cno}, #{title}, #{cate_num}, 
+		#{apply_date}, #{meeting_time} ,#{meeting_day}, #{content}) </insert> -->
+
+
+	<insert id="insert">
+		insert into club(cno, club_name, content, apply_date, meeting_day,
+		meeting_time, status, cate_num, id)
+		values (seq_club.nextval, #{club_name}, #{content}, sysdate, #{meeting_day},
+		#{meeting_time} , '00', #{cate_num}, #{id})
+	</insert>
+
+	<insert id="apply">
+		insert into club ( cno , club_name , content , apply_date , meeting_day ,
+		meeting_time , status , like_count , count , cate_num , id )
+		values (seq_club.nextval, #{club_name}, #{content}, sysdate, #{meeting_day},
+		#{meeting_time} ,'00',0,0, #{cate_num}, #{id})
+	</insert>
+
+</mapper>

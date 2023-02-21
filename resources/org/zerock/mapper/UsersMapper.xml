@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  <mapper namespace="org.zerock.mapper.UsersMapper">
+	
+	<!--회원가입  -->
+	<insert id="UserJoin">
+		insert into member (id , empno, pw, phoneNum) values (#{id}, #{empno}, #{pw}, #{phoneNum})
+	</insert>
+	
+	<!-- 사번인증 -->
+	<select id="MemberLogin" resultType="org.zerock.domain.MemberVO" >
+		SELECT * FROM COMPONY c,
+		(select * from compony where empno NOT in (select empno from member)) m 
+		WHERE m.EMPNO = c.EMPNO AND c.EMPNO = #{empno}
+	</select>
+	
+ 	<!-- 로그인 -->
+	<select id="Login" resultType="org.zerock.domain.UsersVO" >
+		SELECT * FROM MEMBER WHERE id = #{id}
+	</select>
+	
+	<!-- 아이디 중복검사 -->
+	<select id="idCheck" resultType="int">
+		select count(*) from member where id = #{memberId}
+	</select>
+	
+	<!-- 아이디 찾기 -->
+	<select id = "find_id" resultType="String">
+		SELECT m.ID FROM compony c, "MEMBER" m WHERE c.EMPNO = m.EMPNO and m.empno = #{empno} and c.name = #{name} AND birth_date = #{birth_date}
+	</select>
+	
+	<!-- 이메일 조회 -->
+	<select id="email_Ck" resultType="String">
+		SELECT c.email FROM compony c, "MEMBER" m WHERE c.empno = #{empno} AND m.id = #{id}
+	</select>
+
+	<!-- 비밀번호 재설정-->
+	<update id="resetPw">
+		UPDATE member SET pw = #{pw} WHERE empno = #{empno}
+	</update>
+	
+	<!-- mapage 비밀번호확인 -->
+	<select id = "mypage_Pw" resultType="String">
+	SELECT pw FROM member WHERE id = #{id}
+	</select>
+	
+	<!-- mypage 가입정보조회 -->
+	<select id = "mypage_info" resultType="org.zerock.domain.MemberVO">
+	select * from compony where empno = #{empno}
+	</select>
+	
+	<!-- mypage 이메일 수정 -->
+	<update id = "mypage_update_email">
+	update compony set email = #{email} where empno = #{empno}
+	</update>
+	
+	<!-- mypage 휴대폰번호 수정 -->
+	<update id = "mypage_update_phoneNum">
+	update member set phoneNum  = #{phoneNum} where id = #{id}
+	</update>
+	
+	<!-- mypage 탈퇴 전 가입된 동호회 인원수 감소 -->
+	<update id = "downClubCount">
+		BEGIN
+		FOR i in(SELECT cno FROM MY_CLUB WHERE id= #{id}) LOOP 
+			UPDATE CLUB SET count = count-1 WHERE cno = i.cno;
+		COMMIT;
+		END LOOP;
+	END;
+	</update>
+	
+	<!-- mypage 회원정보 삭제 --> 
+	<delete id ="deleteUser">
+		DELETE FROM MEMBER WHERE id = #{id}
+	</delete>
+	
+	<!-- mypage 내가 신청한 신규동호회 목록조회 -->
+	<select id="myApplyList" resultType="org.zerock.domain.ClubDTO">
+		SELECT  rownum AS rnum, c.CLUB_NAME,c.apply_date ,c.STATUS 
+		FROM MEMBER m 
+        inner join club c
+        on m.id = #{id}
+	</select>
+	
+	<!-- mypage 활동중 동호회 목록조회 -->
+	<select id="myActiveList" resultType="org.zerock.domain.ClubDTO">
+  		select rownum AS rnum , c.count, c.club_name , c.meeting_day , c.meeting_time , f.status , f.app_date, f.ID,f.CNO
+	   from ( select   id , cno , status,  to_char(ceil(sysdate - app_date)) as app_date   from my_club  ) f
+	    INNER JOIN CLUB c 
+	   ON f.cno = c.cno
+	   WHERE f.id= #{id}
+	</select>
+	
+	
+	<!--mypage 동호회 탈퇴할 동호회만 count 감소--> 
+	<update id="mypageDowncount">
+		UPDATE CLUB SET count = count -1 WHERE cno = #{cno}
+	</update>
+	
+	<update id="clubWithdrawal">
+		UPDATE MY_CLUB SET STATUS = 2 WHERE id = #{id} AND cno = #{cno}
+	</update> 
+	
+		<!--   mypage 회원정보 삭제전 id admin으료 변경 -->
+	<update id ="updateId">
+		UPDATE CLUB SET ID = 'admin' WHERE id = #{id} 
+	</update>
+	
+	
+  </mapper>
